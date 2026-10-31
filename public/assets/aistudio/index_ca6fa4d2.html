@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DealFlow ASEAN — Investor Tracker for Startups</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #171a23;
+    --surface-2: #1e222d;
+    --border: #2a2f3d;
+    --text: #e8eaf0;
+    --text-dim: #9aa1b2;
+    --accent: #6c8cff;
+    --accent-soft: rgba(108,140,255,0.14);
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --teal: #2dd4bf;
+    --radius: 12px;
+    font-size: 15px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5; min-height: 100vh;
+  }
+  button { font: inherit; cursor: pointer; }
+  input, select { font: inherit; color: var(--text); }
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .brand h1 { font-size: 1.5rem; letter-spacing: -0.02em; }
+  .brand h1 span { color: var(--accent); }
+  .brand p { color: var(--text-dim); font-size: 0.85rem; }
+
+  .btn {
+    background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 14px; font-size: 0.9rem; transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: #262b38; border-color: #3a4152; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0f1117; font-weight: 600; }
+  .btn.primary:hover { background: #7d9aff; }
+  .btn.small { padding: 4px 10px; font-size: 0.8rem; }
+
+  /* ---------- Stats ---------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+  }
+  .stat .num { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  .stat .label { color: var(--text-dim); font-size: 0.8rem; }
+  .stat.good .num { color: var(--green); }
+  .stat.warn .num { color: var(--amber); }
+
+  /* ---------- Pipeline board ---------- */
+  .board-heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .board-heading h2 { font-size: 1.05rem; }
+  .board-heading .hint { color: var(--text-dim); font-size: 0.78rem; }
+  .board {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    margin-bottom: 28px;
+  }
+  .column {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px; min-height: 220px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .col-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 2px 4px 6px; border-bottom: 1px solid var(--border);
+  }
+  .col-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .col-count {
+    font-size: 0.72rem; background: var(--surface-2); border-radius: 10px; padding: 0 8px;
+  }
+  .col-intro .col-title { color: var(--text-dim); }
+  .col-qualified .col-title { color: var(--accent); }
+  .col-meeting .col-title { color: var(--amber); }
+  .col-negotiation .col-title { color: var(--teal); }
+  .col-outcome .col-title { color: var(--green); }
+
+  .opp {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 10px; font-size: 0.82rem; cursor: grab;
+    display: flex; flex-direction: column; gap: 6px;
+    border-left: 3px solid var(--border);
+  }
+  .opp.dragging { opacity: 0.45; cursor: grabbing; }
+  .column.drop-hover {
+    border-color: var(--accent);
+    background: rgba(108,140,255,0.07);
+  }
+  .suggest {
+    font-size: 0.72rem; border-radius: 7px; padding: 4px 8px;
+    display: flex; align-items: center; gap: 6px; width: fit-content;
+    max-width: 100%;
+  }
+  .suggest.up { background: rgba(45,212,191,0.12); color: var(--teal); }
+  .suggest.down { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .suggest.ok { background: var(--surface-2); color: var(--text-dim); }
+  .suggest .btn.tiny { padding: 2px 8px; font-size: 0.7rem; }
+  .opp.st-introduction { border-left-color: #5a6273; }
+  .opp.st-qualified { border-left-color: var(--accent); }
+  .opp.st-meeting { border-left-color: var(--amber); }
+  .opp.st-negotiation { border-left-color: var(--teal); }
+  .opp.st-outcome { border-left-color: var(--green); }
+  .opp .opp-name { font-weight: 650; font-size: 0.88rem; }
+  .opp .opp-parties { color: var(--text-dim); font-size: 0.78rem; }
+  .opp .opp-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--text-dim); font-size: 0.74rem; }
+  .opp .opp-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+
+  .next-chip {
+    font-size: 0.74rem; border-radius: 7px; padding: 4px 8px;
+    background: rgba(108,140,255,0.10); color: var(--accent);
+  }
+  .next-chip.due { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .next-chip.overdue { background: rgba(248,113,113,0.12); color: var(--red); }
+
+  .flag {
+    font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; width: fit-content;
+  }
+  .flag.owner { background: rgba(108,140,255,0.15); color: var(--accent); }
+  .flag.type-investor { background: rgba(108,140,255,0.15); color: var(--accent); }
+  .flag.type-corporate { background: rgba(45,212,191,0.15); color: var(--teal); }
+  .flag.outcome { background: rgba(74,222,128,0.15); color: var(--green); }
+  .flag.stalled { background: rgba(248,113,113,0.15); color: var(--red); }
+
+  /* ---------- Bottom: reminders ---------- */
+  .panels {
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; align-items: start;
+  }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .panel h2 { font-size: 1rem; margin-bottom: 10px; }
+  .panel .sub { color: var(--text-dim); font-size: 0.78rem; margin-bottom: 10px; }
+  .reminder {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 10px; border-radius: 9px; background: var(--surface-2);
+    border: 1px solid var(--border); margin-bottom: 8px; font-size: 0.85rem;
+  }
+  .reminder .when { font-size: 0.75rem; font-weight: 700; white-space: nowrap; padding-top: 1px; }
+  .reminder.overdue .when { color: var(--red); }
+  .reminder.today .when { color: var(--amber); }
+  .reminder.soon .when { color: var(--accent); }
+  .reminder .what { flex: 1; }
+  .reminder .what .dim { color: var(--text-dim); font-size: 0.78rem; }
+  .reminder .btn.tiny { margin-left: auto; padding: 3px 9px; font-size: 0.74rem; white-space: nowrap; }
+
+  .metric-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .metric {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 10px 12px;
+  }
+  .metric .num { font-size: 1.25rem; font-weight: 700; }
+  .metric .label { color: var(--text-dim); font-size: 0.74rem; line-height: 1.3; }
+  .journey {
+    margin-top: 12px; font-size: 0.78rem; color: var(--text-dim);
+    border-top: 1px dashed var(--border); padding-top: 10px;
+  }
+  .journey b { color: var(--text); }
+  .insight-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .insight-top select {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 0.82rem;
+  }
+  .insight-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+  .tl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tl-step {
+    font-size: 0.72rem; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); border-radius: 10px; padding: 2px 8px;
+  }
+  .tl-step.now { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,0.08); }
+  .tl-arrow { color: var(--text-dim); font-size: 0.72rem; }
+
+  @media (max-width: 1000px) {
+    .board { grid-template-columns: repeat(2, 1fr); }
+    .panels { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .board { grid-template-columns: 1fr; }
+    .metric-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <h1>DealFlow <span>ASEAN</span></h1>
+      <p>Your investor &amp; corporate tracker — never lose a conversation after the handshake.</p>
+    </div>
+    <div class="btn" style="border:none; background:none; padding:0;" title="Demo mode — data resets on reload">
+      <span class="side-badge" style="font-size:.75rem; color:var(--text-dim); text-decoration:none;">● demo data</span>
+    </div>
+  </header>
+
+  <section class="stats" id="stats"></section>
+
+  <div class="board-heading">
+    <h2>Your pipeline — every investor &amp; corporate you've met</h2>
+    <span class="hint">Drag cards between stages · suggestions guide you</span>
+  </div>
+  <main class="board" id="board"></main>
+
+  <section class="panels">
+    <div class="panel" id="remindersPanel"></div>
+    <div class="panel" id="metricsPanel"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STAGES = ["Introduction", "Qualified", "Meeting", "Negotiation", "Outcome"];
+  var STAGE_KEY = { "Introduction": "introduction", "Qualified": "qualified", "Meeting": "meeting", "Negotiation": "negotiation", "Outcome": "outcome" };
+
+  function daysAgo(n) {
+    var d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().slice(0, 10);
+  }
+  function inDays(n) { return daysAgo(-n); }
+
+  /* Demo data — YOUR startup's tracker: one card per investor / corporate you've met.
+     Updated daily so overdue/soon states stay alive in demos. */
+  var opportunities = [
+    {
+      id: "OPP-101",
+      company: "ThaiLogistics Co. (TH)",
+      type: "corporate",
+      about: "Their AI POC pilot — last-mile logistics",
+      owner: "N. Rahman (you)",
+      stage: "Negotiation",
+      created: daysAgo(30),
+      nextAction: "Sign pilot MOU",
+      nextDue: inDays(2),
+      history: ["D1 Introduction", "D5 Discovery meeting", "D12 POC proposal", "D30 Pilot negotiation"]
+    },
+    {
+      id: "OPP-103",
+      company: "Mekong Capital (VN)",
+      type: "investor",
+      about: "Seed round — they led a similar climate deal",
+      owner: "S. Tan (you)",
+      stage: "Meeting",
+      created: daysAgo(20),
+      nextAction: "Second partner meeting — bring the financial model",
+      nextDue: inDays(3),
+      history: ["D1 Introduction", "D9 Qualified", "D17 First meeting"]
+    },
+    {
+      id: "OPP-102",
+      company: "Wavemaker Partners (SG)",
+      type: "investor",
+      about: "Pre-seed follow-up from the Mekong intro",
+      owner: "S. Tan (you)",
+      stage: "Qualified",
+      created: daysAgo(8),
+      nextAction: "Send one-pager & schedule discovery call",
+      nextDue: daysAgo(1),
+      history: ["D1 Introduction", "D8 Qualified"]
+    },
+    {
+      id: "OPP-105",
+      company: "APV Fund (SG)",
+      type: "investor",
+      about: "Met at the AgriTech pitching day",
+      owner: "S. Tan (you)",
+      stage: "Introduction",
+      created: daysAgo(5),
+      nextAction: "Confirm their investment objectives",
+      nextDue: daysAgo(2),
+      history: ["D1 Introduction"]
+    },
+    {
+      id: "OPP-104",
+      company: "Bumrungrad Innovation (TH)",
+      type: "corporate",
+      about: "Market-entry pilot for our healthtech platform",
+      owner: "N. Rahman (you)",
+      stage: "Outcome",
+      created: daysAgo(45),
+      nextAction: "Collect MOU evidence, submit success story",
+      nextDue: inDays(1),
+      outcome: "Pilot launched — 3 clinics onboarding",
+      history: ["D1 Introduction", "D6 Qualified", "D14 Meeting", "D25 Negotiation", "D42 Pilot launched"]
+    },
+    {
+      id: "OPP-106",
+      company: "Sinar Industrial (MY)",
+      type: "corporate",
+      about: "Robotics R&D co-development",
+      owner: "J. Kusuma (you)",
+      stage: "Qualified",
+      created: daysAgo(35),
+      nextAction: "Re-confirm interest — no reply in 2 weeks",
+      nextDue: daysAgo(4),
+      stalled: true,
+      history: ["D1 Introduction", "D10 Qualified"]
+    }
+  ];
+
+  /* ---------- Helpers ---------- */
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function todayStr() { return new Date().toISOString().slice(0, 10); }
+  function daysBetween(a, b) {
+    return Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000);
+  }
+  function chipClass(due) {
+    var d = daysBetween(todayStr(), due);
+    if (d < 0) return "overdue";
+    if (d <= 1) return "due";
+    return "";
+  }
+  function dueLabel(due) {
+    var d = daysBetween(todayStr(), due);
+    if (d < 0) return Math.abs(d) + "d overdue";
+    if (d === 0) return "today";
+    if (d === 1) return "tomorrow";
+    return "in " + d + "d";
+  }
+  function median(arr) {
+    if (!arr.length) return null;
+    var s = arr.slice().sort(function (a, b) { return a - b; });
+    var m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function daysToQualified(o) {
+    var q = o.history.find(function (h) { return h.indexOf("Qualified") !== -1; });
+    if (!q) return null;
+    return parseInt(q.split(" ")[0].slice(1), 10);
+  }
+
+  /* Short, friendly deal code for display, e.g. "#101" */
+  function dealCode(o) { return "#" + String(o.id).replace(/\D/g, ""); }
+
+  /* Suggest a stage from what the OWE action says — placement never influences it.
+     Moving a card doesn't change the judgment; only changing the next action does.
+     Returns null when the next action is too generic to judge. */
+  function suggestStage(o) {
+    var na = (o.nextAction || "").toLowerCase();
+    var stages = [
+      { re: /evidence|submit success/, idx: 4, why: "next step is to submit outcome evidence" },
+      { re: /mou|sign|negotiat|proposal|poc/, idx: 3, why: "next step involves a proposal or signing" },
+      { re: /call|meeting/, idx: 2, why: "next step is a meeting or call" },
+      { re: /one-pager|re-confirm|objectives/, idx: 1, why: "next step is qualifying the deal" }
+    ];
+    var best = null;
+    stages.forEach(function (m) {
+      if (m.re.test(na) && (best == null || m.idx > best.idx)) {
+        best = { idx: m.idx, stage: STAGES[m.idx], reason: m.why };
+      }
+    });
+    return best;
+  }
+
+  /* ---------- Actions (mutation in-memory) ---------- */
+  var insightId = null; /* which company the insight dropdown shows */
+
+  function snooze(id, days) {
+    var o = opportunities.find(function (x) { return x.id === id; });
+    if (!o) return;
+    o.nextDue = inDays(days);
+    o.stalled = false;
+    render();
+  }
+
+  /* ---------- Render ---------- */
+  function render() {
+    renderStats();
+    renderBoard();
+    renderReminders();
+    renderMetrics();
+  }
+
+  function renderStats() {
+    var total = opportunities.length;
+    var outcomes = opportunities.filter(function (o) { return o.stage === "Outcome"; }).length;
+    var stalled = opportunities.filter(function (o) { return o.stalled; }).length;
+    var overdue = opportunities.filter(function (o) { return daysBetween(todayStr(), o.nextDue) < 0; }).length;
+    document.getElementById("stats").innerHTML =
+      '<div class="stat"><div class="num">' + total + '</div><div class="label">Companies you\'re tracking</div></div>' +
+      '<div class="stat good"><div class="num">' + outcomes + '</div><div class="label">Results landed</div></div>' +
+      '<div class="stat warn"><div class="num">' + overdue + '</div><div class="label">Overdue follow-ups</div></div>' +
+      '<div class="stat warn"><div class="num">' + stalled + '</div><div class="label">Went quiet (2+ weeks)</div></div>';
+  }
+
+  function renderBoard() {
+    var html = STAGES.map(function (stage) {
+      var items = opportunities.filter(function (o) { return o.stage === stage; });
+      var cards = items.map(function (o) {
+        var flags = '<div style="display:flex; gap:5px; flex-wrap:wrap;">' +
+          (o.type === "investor" ? '<span class="flag type-investor">🧑‍💼 Investor</span>' : '<span class="flag type-corporate">🏢 Corporate</span>') +
+          '<span class="flag owner">' + esc(o.owner) + '</span>' +
+          (o.stalled ? '<span class="flag stalled">⚠ stalled</span>' : "") +
+          (o.outcome ? '<span class="flag outcome">✔ ' + esc(o.outcome) + '</span>' : "") +
+        '</div>';
+        var next = (o.nextAction && o.stage !== "Outcome" || (o.stage === "Outcome" && o.nextAction))
+          ? '<div class="next-chip ' + chipClass(o.nextDue) + '">➜ ' + esc(o.nextAction) + ' · ' + dueLabel(o.nextDue) + '</div>'
+          : "";
+        var isOutcomeStage = stage === "Outcome";
+        var sug = suggestStage(o);
+        var curIdx = STAGES.indexOf(stage);
+        var sugChip;
+        if (sug == null) {
+          sugChip = '<div class="suggest ok" title="No clear signal — set a specific next action">· No stage signal — the next action looks too generic</div>';
+        } else if (sug.idx > curIdx) {
+          sugChip = '<div class="suggest up" title="Why: ' + esc(sug.reason) + '">⬆ Suggested stage: ' + esc(sug.stage) +
+            ' <button class="btn tiny" data-move="' + o.id + '|' + esc(sug.stage) + '">Move</button></div>';
+        } else if (sug.idx < curIdx) {
+          sugChip = '<div class="suggest down" title="Why: ' + esc(sug.reason) + '">⚠ Decision stands at: ' + esc(sug.stage) +
+            ' <button class="btn tiny" data-move="' + o.id + '|' + esc(sug.stage) + '">Move back</button></div>';
+        } else {
+          sugChip = '<div class="suggest ok" title="Why: ' + esc(sug.reason) + '">✓ Stage looks right — ' + esc(sug.reason) + '</div>';
+        }
+        return '<div class="opp st-' + STAGE_KEY[stage] + '" draggable="true" data-dragid="' + o.id + '">' +
+          '<div class="opp-name">' + esc(o.company) + '</div>' +
+          '<div class="opp-parties" style="color:var(--text); font-size:.78rem;">' + esc(o.about) + '</div>' +
+          next + flags + sugChip +
+        '</div>';
+      }).join("");
+      return '<div class="column col-' + STAGE_KEY[stage] + '" data-dropstage="' + stage + '">' +
+        '<div class="col-head"><span class="col-title">' + stage + '</span>' +
+        '<span class="col-count">' + items.length + '</span></div>' +
+        (cards || '<div style="color:var(--text-dim); font-size:.78rem; padding:8px 4px;">—</div>') +
+      '</div>';
+    }).join("");
+    var board = document.getElementById("board");
+    board.innerHTML = html;
+    board.querySelectorAll("[data-advance]").forEach(function (btn) {
+      btn.parentNode.removeChild(btn);
+    });
+    board.querySelectorAll("[data-move]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var parts = btn.getAttribute("data-move").split("|");
+        moveTo(parts[0], parts[1]);
+      });
+    });
+    setupDragAndDrop(board);
+  }
+
+  /* ---------- Drag & drop between stages ---------- */
+  function setupDragAndDrop(board) {
+    var draggedId = null;
+
+    board.querySelectorAll("[data-dragid]").forEach(function (card) {
+      card.addEventListener("dragstart", function (e) {
+        draggedId = card.getAttribute("data-dragid");
+        card.classList.add("dragging");
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+          try { e.dataTransfer.setData("text/plain", draggedId); } catch (err) { /* IE */ }
+        }
+      });
+      card.addEventListener("dragend", function () {
+        card.classList.remove("dragging");
+        board.querySelectorAll(".column").forEach(function (c) { c.classList.remove("drop-hover"); });
+      });
+    });
+
+    board.querySelectorAll("[data-dropstage]").forEach(function (col) {
+      col.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        col.classList.add("drop-hover");
+      });
+      col.addEventListener("dragleave", function (e) {
+        if (!col.contains(e.relatedTarget)) col.classList.remove("drop-hover");
+      });
+      col.addEventListener("drop", function (e) {
+        e.preventDefault();
+        col.classList.remove("drop-hover");
+        if (!draggedId) return;
+        moveTo(draggedId, col.getAttribute("data-dropstage"));
+        draggedId = null;
+      });
+    });
+  }
+
+  /* Move an opportunity to a given stage via drag or suggestion Move.
+     The card relocates and the journey is logged, but the owed
+     next action is NOT rewritten — so the stage suggestion keeps
+     judging the deal's real evidence instead of rubber-stamping moves. */
+  function moveTo(id, stage) {
+    var o = opportunities.find(function (x) { return x.id === id; });
+    if (!o || o.stage === stage) return;
+    o.stage = stage;
+    o.history = o.history || [];
+    var last = o.history[o.history.length - 1] || "";
+    if (last.indexOf(stage) === -1) {
+      o.history.push("D" + Math.max(1, daysBetween(o.created, todayStr())) + " " + stage);
+    }
+    o.stalled = false;
+    render();
+  }
+
+  function renderReminders() {
+    var rows = opportunities
+      .filter(function (o) { return o.nextDue; })
+      .sort(function (a, b) { return a.nextDue.localeCompare(b.nextDue); });
+    var html = rows.map(function (o) {
+      var d = daysBetween(todayStr(), o.nextDue);
+      var cls = d < 0 ? "overdue" : (d <= 1 ? "today" : (d <= 7 ? "soon" : "soon"));
+      return '<div class="reminder ' + cls + '">' +
+        '<span class="when">' + dueLabel(o.nextDue) + '</span>' +
+        '<span class="what">' + esc(o.nextAction) +
+          '<div class="dim">Follow up with <b style="color:var(--text);">' + esc(o.company) + '</b></div>' +
+          '<div class="dim">' + esc(o.stage) + (o.owner ? ' · handling: ' + esc(o.owner) : '') + '</div>' +
+        '</span>' +
+        '<button class="btn tiny" data-snooze="' + o.id + '">Snooze +7d</button>' +
+      '</div>';
+    }).join("");
+    var panel = document.getElementById("remindersPanel");
+    panel.innerHTML = '<h2>⏰ Follow-up reminders</h2>' +
+      '<div class="sub">Your nudges — a prompt for every follow-up you owe, until it is done.</div>' +
+      (html || '<div style="color:var(--text-dim); font-size:.85rem;">No scheduled follow-ups.</div>');
+    panel.querySelectorAll("[data-snooze]").forEach(function (btn) {
+      btn.addEventListener("click", function () { snooze(btn.getAttribute("data-snooze"), 7); });
+    });
+  }
+
+  function renderMetrics() {
+    var insOptions = opportunities.map(function (o) {
+      return '<option value="' + o.id + '"' + (o.id === insightId ? ' selected' : '') + '>' + esc(o.company) + '</option>';
+    }).join("");
+    var sel = opportunities.find(function (o) { return o.id === insightId; }) || opportunities[0];
+    insightId = sel.id;
+    var since = daysBetween(sel.created, todayStr());
+    var hist = sel.history || [];
+    var lastEntry = hist.length ? hist[hist.length - 1] : "";
+    var lastDay = lastEntry ? parseInt(lastEntry.split(" ")[0].slice(1), 10) : 0;
+    var inStage = Math.max(0, since - lastDay);
+    var qd = daysToQualified(sel);
+    var tl = hist.slice().sort(function (a, b) {
+      return parseInt(a.split(" ")[0].slice(1), 10) - parseInt(b.split(" ")[0].slice(1), 10);
+    }).map(function (h) {
+      var day = parseInt(h.split(" ")[0].slice(1), 10);
+      var label = h.split(" ").slice(1).join(" ");
+      return '<span class="tl-step' + (label === sel.stage ? ' now' : '') + '">Day ' + day + ' · ' + esc(label) + '</span>';
+    }).join('<span class="tl-arrow">→</span>');
+
+    var insight =
+      '<div class="journey">' +
+        '<div class="insight-top"><b style="font-size:.85rem;">🔍 Company insight</b>' +
+        '<select id="insightSelect">' + insOptions + '</select></div>' +
+        '<div class="insight-grid">' +
+          '<div class="metric"><div class="num" style="font-size:1.05rem;">' + since + 'd</div><div class="label">Days since you first met</div></div>' +
+          '<div class="metric"><div class="num" style="font-size:1.05rem;">' + inStage + 'd</div><div class="label">Days since last movement — ' + esc(sel.stage) + '</div></div>' +
+          '<div class="metric"><div class="num" style="font-size:1.05rem;">' + (qd == null ? "—" : "Day " + qd) + '</div><div class="label">When it qualified</div></div>' +
+          '<div class="metric"><div class="num" style="font-size:1.05rem;">' + hist.length + '</div><div class="label">Steps recorded so far</div></div>' +
+        '</div>' +
+        '<div style="font-size:.78rem; color:var(--text-dim); margin-bottom:2px;">Stage timeline</div>' +
+        '<div class="tl">' + (tl || '<span class="tl-step">No steps yet</span>') + '</div>' +
+        (sel.outcome ? '<div style="margin-top:8px;"><span class="flag outcome">✔ ' + esc(sel.outcome) + '</span></div>' : "") +
+      '</div>';
+
+    document.getElementById("metricsPanel").innerHTML = insight;
+
+    var selEl = document.getElementById("insightSelect");
+    if (selEl) selEl.addEventListener("change", function () {
+      insightId = this.value;
+      renderMetrics();
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
